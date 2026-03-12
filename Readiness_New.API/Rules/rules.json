@@ -1,0 +1,191 @@
+{
+  "name": "Tax Return Validation Rules",
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "TR-001",
+      "name": "Missing Taxpayer ID",
+      "description": "Taxpayer ID is required for all tax returns",
+      "enabled": true,
+      "severity": "Error",
+      "category": "RequiredFields",
+      "condition": {
+        "field": "TaxpayerId",
+        "operator": "IsEmpty"
+      }
+    },
+    {
+      "id": "TR-002",
+      "name": "Invalid Tax Year",
+      "description": "Tax year must be between 2000 and current year",
+      "enabled": true,
+      "severity": "Error",
+      "category": "DataValidation",
+      "condition": {
+        "logicalOperator": "OR",
+        "conditions": [
+          {
+            "field": "TaxYear",
+            "operator": "LT",
+            "value": 2000
+          },
+          {
+            "field": "TaxYear",
+            "operator": "GT",
+            "value": 2024
+          }
+        ]
+      }
+    },
+    {
+      "id": "TR-003",
+      "name": "Negative Taxable Income",
+      "description": "Taxable income cannot be negative",
+      "enabled": true,
+      "severity": "Error",
+      "category": "CalculationValidation",
+      "condition": {
+        "field": "TaxableIncome",
+        "operator": "LT",
+        "value": 0
+      }
+    },
+    {
+      "id": "TR-004",
+      "name": "Income Deduction Mismatch",
+      "description": "Total deductions cannot exceed total income",
+      "enabled": true,
+      "severity": "Warning",
+      "category": "CalculationValidation",
+      "condition": {
+        "field": "TotalDeductions",
+        "operator": "GT",
+        "value": "TotalIncome"
+      }
+    },
+    {
+      "id": "TR-005",
+      "name": "Invalid Filing Status",
+      "description": "Filing status must be one of the valid options",
+      "enabled": true,
+      "severity": "Error",
+      "category": "DataValidation",
+      "condition": {
+        "field": "FilingStatus",
+        "operator": "NotIn",
+        "value": ["Single", "Married Filing Jointly", "Married Filing Separately", "Head of Household", "Qualifying Widow"]
+      }
+    },
+    {
+      "id": "TR-006",
+      "name": "Missing Form 1040",
+      "description": "Form 1040 is required for all tax returns",
+      "enabled": true,
+      "severity": "Error",
+      "category": "RequiredForms",
+      "condition": {
+        "field": "Form1040",
+        "operator": "NotExists"
+      }
+    },
+    {
+      "id": "TR-007",
+      "name": "High Income Missing W2",
+      "description": "Tax returns with wages over $10,000 must include W2 forms",
+      "enabled": true,
+      "severity": "Warning",
+      "category": "RequiredForms",
+      "condition": {
+        "logicalOperator": "AND",
+        "conditions": [
+          {
+            "field": "Form1040.Line1_Wages",
+            "operator": "GT",
+            "value": 10000
+          },
+          {
+            "field": "W2Forms",
+            "operator": "NotExists"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TR-008",
+      "name": "Schedule C Without Business Income",
+      "description": "Schedule C filed but no business income reported",
+      "enabled": true,
+      "severity": "Warning",
+      "category": "ConsistencyCheck",
+      "condition": {
+        "logicalOperator": "AND",
+        "conditions": [
+          {
+            "field": "ScheduleC",
+            "operator": "Exists"
+          },
+          {
+            "logicalOperator": "OR",
+            "conditions": [
+              {
+                "field": "ScheduleC.GrossReceipts",
+                "operator": "LTE",
+                "value": 0
+              },
+              {
+                "field": "ScheduleC.NetProfit",
+                "operator": "LTE",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "TR-009",
+      "name": "Dependents Without Count",
+      "description": "If HasDependents is true, NumberOfDependents must be greater than 0",
+      "enabled": true,
+      "severity": "Error",
+      "category": "ConsistencyCheck",
+      "condition": {
+        "logicalOperator": "AND",
+        "conditions": [
+          {
+            "field": "HasDependents",
+            "operator": "EQ",
+            "value": true
+          },
+          {
+            "field": "NumberOfDependents",
+            "operator": "LTE",
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "TR-010",
+      "name": "Excessive Charitable Deductions",
+      "description": "Charitable contributions exceed 60% of total income",
+      "enabled": true,
+      "severity": "Warning",
+      "category": "AuditRisk",
+      "condition": {
+        "logicalOperator": "AND",
+        "conditions": [
+          {
+            "field": "ScheduleA.CharitableContributions",
+            "operator": "Exists"
+          },
+          {
+            "field": "TotalIncome",
+            "operator": "GT",
+            "value": 0
+          }
+        ]
+      }
+    }
+  ]
+}
