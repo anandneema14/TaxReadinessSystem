@@ -1,0 +1,100 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
+import { TaxReturnService } from '../../services/tax-return.service';
+import { TaxReturn, ValidationResult } from '../../models/tax-return.model';
+
+@Component({
+  selector: 'app-tax-return-form',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  templateUrl: './tax-return-form.component.html',
+  styleUrls: ['./tax-return-form.component.scss']
+})
+export class TaxReturnFormComponent {
+  taxForm: FormGroup;
+  validationResult: ValidationResult | null = null;
+  loading = false;
+  error: string | null = null;
+
+  constructor(private fb: FormBuilder, private taxService: TaxReturnService) {
+    this.taxForm = this.fb.group({
+      taxpayerId: ['', Validators.required],
+      taxYear: [2023, [Validators.required, Validators.min(2000), Validators.max(2025)]],
+      filingStatus: ['Single', Validators.required],
+      totalIncome: [0, Validators.required],
+      totalDeductions: [0],
+      taxableIncome: [0],
+      totalTax: [0],
+      withholdingAmount: [0],
+      hasDependents: [false],
+      numberOfDependents: [0],
+      form1040: this.fb.group({
+        name: ['', Validators.required],
+        ssn: ['', Validators.required],
+        address: [''],
+        line1_Wages: [0],
+        line2_Interest: [0],
+        line3_Dividends: [0],
+        line8_TotalIncome: [0]
+      }),
+      scheduleA: this.fb.group({
+        medicalExpenses: [0],
+        stateAndLocalTaxes: [0],
+        mortgageInterest: [0],
+        charitableContributions: [0],
+        totalItemizedDeductions: [0]
+      }),
+      scheduleC: this.fb.group({
+        businessName: [''],
+        grossReceipts: [0],
+        totalExpenses: [0],
+        netProfit: [0]
+      }),
+      w2Forms: this.fb.array([])
+    });
+  }
+
+  get w2Forms() {
+    return this.taxForm.get('w2Forms') as FormArray;
+  }
+
+  addW2Form() {
+    const w2Form = this.fb.group({
+      employerName: ['', Validators.required],
+      employerEIN: ['', Validators.required],
+      wages: [0, Validators.required],
+      federalTaxWithheld: [0],
+      socialSecurityWages: [0]
+    });
+    this.w2Forms.push(w2Form);
+  }
+
+  removeW2Form(index: number) {
+    this.w2Forms.removeAt(index);
+  }
+
+  onSubmit() {
+    if (this.taxForm.valid) {
+      this.loading = true;
+      this.error = null;
+      this.validationResult = null;
+
+      const taxReturn: TaxReturn = this.taxForm.value;
+      
+      this.taxService.validateTaxReturn(taxReturn).subscribe({
+        next: (result) => {
+          this.validationResult = result;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.error = 'An error occurred while validating the tax return.';
+          this.loading = false;
+          console.error(err);
+        }
+      });
+    } else {
+      this.taxForm.markAllAsTouched();
+    }
+  }
+}

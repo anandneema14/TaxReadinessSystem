@@ -32,6 +32,15 @@ public class Program
         }
 
         // Add services to the container.
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAngular", policy =>
+            {
+                policy.WithOrigins("http://localhost:4200") // Default Angular port
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            });
+        });
 
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
@@ -49,6 +58,8 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+
+        app.UseCors("AllowAngular");
 
         app.UseAzureAppConfiguration();
 

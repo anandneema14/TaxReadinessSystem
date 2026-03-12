@@ -1,0 +1,90 @@
+<div class="container mt-4">
+  <h2>Tax Return Data Input</h2>
+  <form [formGroup]="taxForm" (ngSubmit)="onSubmit()">
+    <div class="card mb-3">
+      <div class="card-header">Basic Information</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Taxpayer ID</label>
+            <input type="text" class="form-control" formControlName="taxpayerId">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Tax Year</label>
+            <input type="number" class="form-control" formControlName="taxYear">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Filing Status</label>
+            <select class="form-select" formControlName="filingStatus">
+              <option value="Single">Single</option>
+              <option value="MarriedFilingJointly">Married Filing Jointly</option>
+              <option value="MarriedFilingSeparately">Married Filing Separately</option>
+              <option value="HeadOfHousehold">Head of Household</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Total Income</label>
+            <input type="number" class="form-control" formControlName="totalIncome">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Total Deductions</label>
+            <input type="number" class="form-control" formControlName="totalDeductions">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Taxable Income</label>
+            <input type="number" class="form-control" formControlName="taxableIncome">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Total Tax</label>
+            <input type="number" class="form-control" formControlName="totalTax">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3" formGroupName="form1040">
+      <div class="card-header">Form 1040 Details</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-control" formControlName="name">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">SSN</label>
+            <input type="text" class="form-control" formControlName="ssn">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Wages (Line 1)</label>
+            <input type="number" class="form-control" formControlName="line1_Wages">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <button type="submit" class="btn btn-primary" [disabled]="loading">
+        {{ loading ? 'Validating...' : 'Submit for Validation' }}
+      </button>
+    </div>
+  </form>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <div *ngIf="validationResult" class="mt-4">
+    <h3>Validation Results</h3>
+    <div [class.alert-success]="validationResult.isValid" [class.alert-danger]="!validationResult.isValid" class="alert">
+      <strong>Status:</strong> {{ validationResult.isValid ? 'Valid' : 'Invalid' }}
+      <br>
+      <strong>Violations:</strong> {{ validationResult.violationCount }}
+    </div>
+
+    <ul *ngIf="validationResult.violations.length > 0" class="list-group">
+      <li *ngFor="let v of validationResult.violations" class="list-group-item list-group-item-warning">
+        <strong>[{{ v.ruleId }}]</strong> {{ v.message }} ({{ v.category }})
+      </li>
+    </ul>
+  </div>
+</div>

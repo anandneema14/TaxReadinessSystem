@@ -6,6 +6,26 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Readiness_new.RA", "Readine
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Readiness_New.Data", "Readiness_New.Data\Readiness_New.Data.csproj", "{F867BC14-9542-4860-AB90-1D9D37013341}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Readiness_New.Web", "Readiness_New.Web", "{E1A2B3C4-D5E6-4F7A-8B9C-0D1E2F3A4B5C}"
+	ProjectSection(SolutionItems) = preProject
+		Readiness_New.Web\package.json = Readiness_New.Web\package.json
+		Readiness_New.Web\angular.json = Readiness_New.Web\angular.json
+		Readiness_New.Web\tsconfig.json = Readiness_New.Web\tsconfig.json
+		Readiness_New.Web\tsconfig.app.json = Readiness_New.Web\tsconfig.app.json
+		Readiness_New.Web\src\index.html = Readiness_New.Web\src\index.html
+		Readiness_New.Web\src\app\models\tax-return.model.ts = Readiness_New.Web\src\app\models\tax-return.model.ts
+		Readiness_New.Web\src\app\app.component.ts = Readiness_New.Web\src\app\app.component.ts
+		Readiness_New.Web\src\app\components\tax-return-form\tax-return-form.component.html = Readiness_New.Web\src\app\components\tax-return-form\tax-return-form.component.html
+		Readiness_New.Web\src\app\components\tax-return-form\tax-return-form.component.ts = Readiness_New.Web\src\app\components\tax-return-form\tax-return-form.component.ts
+		Readiness_New.Web\src\app\app.config.ts = Readiness_New.Web\src\app\app.config.ts
+		Readiness_New.Web\src\app\services\tax-return.service.ts = Readiness_New.Web\src\app\services\tax-return.service.ts
+		Readiness_New.Web\src\main.ts = Readiness_New.Web\src\main.ts
+		Readiness_New.Web\src\environments\environment.prod.ts = Readiness_New.Web\src\environments\environment.prod.ts
+		Readiness_New.Web\src\environments\environment.ts = Readiness_New.Web\src\environments\environment.ts
+		Readiness_New.Web\src\styles.scss = Readiness_New.Web\src\styles.scss
+		Readiness_New.Web\src\polyfills.ts = Readiness_New.Web\src\polyfills.ts
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
