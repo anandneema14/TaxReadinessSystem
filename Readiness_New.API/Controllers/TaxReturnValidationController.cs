@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Readiness_New.API.Configurations;
 using Readiness_New.Data;
 using Readiness_new.RA;
 
@@ -11,15 +13,18 @@ public class TaxReturnValidationController : ControllerBase
     private readonly IRuleEngine _ruleEngine;
     private readonly IRuleRepository _ruleLoader;
     private readonly ILogger<TaxReturnValidationController> _logger;
+    private readonly RuleEngineOptions _options;
     private static RuleSet? _cachedRuleSet;
     private static readonly SemaphoreSlim _cacheLock = new SemaphoreSlim(1, 1);
 
     public TaxReturnValidationController(IRuleEngine ruleEngine,
-        IRuleRepository ruleLoader, ILogger<TaxReturnValidationController> logger)
+        IRuleRepository ruleLoader, ILogger<TaxReturnValidationController> logger,
+        IOptions<RuleEngineOptions> options)
     {
         _ruleEngine = ruleEngine; 
         _ruleLoader = ruleLoader; 
         _logger = logger;
+        _options = options.Value;
     }
 
     /// <summary>///
@@ -146,10 +151,10 @@ public class TaxReturnValidationController : ControllerBase
             await _cacheLock.WaitAsync();
             try
             {
-                _cachedRuleSet = await _ruleLoader.LoadRulesAsync("rules.json");
+                _cachedRuleSet = await _ruleLoader.LoadRulesAsync(_options.RulesPath);
                 _logger.LogInformation("Rules reloaded successfully. Total rules: {RuleCount}",
-                    _cachedRuleSet.Rules.Count);
-                return Ok(new { message = "Rules reloaded successfully", ruleCount = _cachedRuleSet.Rules.Count });
+                    _cachedRuleSet?.Rules.Count ?? 0);
+                return Ok(new { message = "Rules reloaded successfully", ruleCount = _cachedRuleSet?.Rules.Count ?? 0 });
             }
             finally
             {
@@ -175,12 +180,12 @@ public class TaxReturnValidationController : ControllerBase
         {
             if (_cachedRuleSet == null)
             {
-                _cachedRuleSet = await _ruleLoader.LoadRulesAsync("rules.json");
+                _cachedRuleSet = await _ruleLoader.LoadRulesAsync(_options.RulesPath);
                 _logger.LogInformation("Rules loaded for the first time. Total rules: {RuleCount}",
-                    _cachedRuleSet.Rules.Count);
+                    _cachedRuleSet?.Rules.Count ?? 0);
             }
 
-            return _cachedRuleSet.Rules;
+            return _cachedRuleSet?.Rules ?? new List<Rule>();
         }
         finally
         {

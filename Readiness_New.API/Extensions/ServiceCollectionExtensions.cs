@@ -8,8 +8,20 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddRuleEngine(this IServiceCollection services, IConfiguration configuration)
     {
+        var options = new RuleEngineOptions();
+        configuration.GetSection("RuleEngine").Bind(options);
         services.Configure<RuleEngineOptions>(configuration.GetSection("RuleEngine"));
-        services.AddSingleton<IRuleRepository, JsonRuleLoader>();
+
+        if (options.Provider?.Equals("AzureAppConfig", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            services.AddSingleton<IRuleRepository>(sp => 
+                new AzureAppConfigRuleRepository(configuration, options.AzureAppConfig.Key));
+        }
+        else
+        {
+            services.AddSingleton<IRuleRepository, JsonRuleLoader>();
+        }
+
         services.AddSingleton<IRuleEngine, RuleEngineService>();
         return services;
     } 
