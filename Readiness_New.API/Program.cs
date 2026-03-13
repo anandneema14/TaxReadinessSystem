@@ -14,6 +14,7 @@ public class Program
         var ruleEngineSection = builder.Configuration.GetSection("RuleEngine");
         var provider = ruleEngineSection["Provider"];
 
+        var useAzureAppConfig = false;
         if (provider?.Equals("AzureAppConfig", StringComparison.OrdinalIgnoreCase) == true)
         {
             var appConfigConnString = ruleEngineSection["AzureAppConfig:ConnectionString"] ?? connectionString;
@@ -28,6 +29,10 @@ public class Program
                                       .SetCacheExpiration(TimeSpan.FromSeconds(30));
                            });
                 });
+
+                // Add Azure App Configuration services
+                builder.Services.AddAzureAppConfiguration();
+                useAzureAppConfig = true;
             }
         }
 
@@ -61,7 +66,11 @@ public class Program
 
         app.UseCors("AllowAngular");
 
-        app.UseAzureAppConfiguration();
+        // Only use Azure App Configuration middleware if it was configured
+        if (useAzureAppConfig)
+        {
+            app.UseAzureAppConfiguration();
+        }
 
         app.UseAuthorization();
         

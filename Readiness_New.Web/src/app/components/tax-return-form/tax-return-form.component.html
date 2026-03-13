@@ -1,90 +1,905 @@
-<div class="container mt-4">
-  <h2>Tax Return Data Input</h2>
-  <form [formGroup]="taxForm" (ngSubmit)="onSubmit()">
-    <div class="card mb-3">
-      <div class="card-header">Basic Information</div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Taxpayer ID</label>
-            <input type="text" class="form-control" formControlName="taxpayerId">
-          </div>
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Tax Year</label>
-            <input type="number" class="form-control" formControlName="taxYear">
-          </div>
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Filing Status</label>
-            <select class="form-select" formControlName="filingStatus">
-              <option value="Single">Single</option>
-              <option value="MarriedFilingJointly">Married Filing Jointly</option>
-              <option value="MarriedFilingSeparately">Married Filing Separately</option>
-              <option value="HeadOfHousehold">Head of Household</option>
-            </select>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Total Income</label>
-            <input type="number" class="form-control" formControlName="totalIncome">
-          </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Total Deductions</label>
-            <input type="number" class="form-control" formControlName="totalDeductions">
-          </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Taxable Income</label>
-            <input type="number" class="form-control" formControlName="taxableIncome">
-          </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label">Total Tax</label>
-            <input type="number" class="form-control" formControlName="totalTax">
-          </div>
-        </div>
+﻿<div class="container mt-4">
+  <h2>Tax Return Data Input - Form 1040</h2>
+
+  <!-- Input Mode Selection -->
+  <div class="card mb-4 border-primary">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Choose Input Method</h5>
+    </div>
+    <div class="card-body">
+      <div class="btn-group w-100" role="group">
+        <button type="button" 
+                class="btn" 
+                [class.btn-primary]="inputMode === 'form'"
+                [class.btn-outline-primary]="inputMode !== 'form'"
+                (click)="setInputMode('form')">
+          <i class="bi bi-ui-checks-grid me-2"></i>
+          Manual Form Entry
+        </button>
+        <button type="button" 
+                class="btn" 
+                [class.btn-primary]="inputMode === 'json'"
+                [class.btn-outline-primary]="inputMode !== 'json'"
+                (click)="setInputMode('json')">
+          <i class="bi bi-filetype-json me-2"></i>
+          Upload / Paste JSON
+        </button>
       </div>
     </div>
+  </div>
 
-    <div class="card mb-3" formGroupName="form1040">
-      <div class="card-header">Form 1040 Details</div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Full Name</label>
-            <input type="text" class="form-control" formControlName="name">
-          </div>
-          <div class="col-md-4 mb-3">
-            <label class="form-label">SSN</label>
-            <input type="text" class="form-control" formControlName="ssn">
-          </div>
-          <div class="col-md-4 mb-3">
-            <label class="form-label">Wages (Line 1)</label>
-            <input type="number" class="form-control" formControlName="line1_Wages">
-          </div>
+  <!-- JSON Input Section -->
+  <div *ngIf="inputMode === 'json'" class="card mb-4">
+    <div class="card-header bg-info text-white">
+      <h5 class="mb-0">
+        <i class="bi bi-file-earmark-code me-2"></i>
+        JSON Input
+      </h5>
+    </div>
+    <div class="card-body">
+      <!-- File Upload -->
+      <div class="mb-4">
+        <label class="form-label fw-bold">Option 1: Upload JSON File</label>
+        <div class="input-group">
+          <input type="file" 
+                 class="form-control" 
+                 accept=".json,application/json"
+                 (change)="onFileSelected($event)"
+                 #fileInput>
+          <button class="btn btn-outline-secondary" type="button" (click)="fileInput.value = ''; jsonContent = ''">
+            Clear
+          </button>
+        </div>
+        <small class="text-muted">Maximum file size: 5MB</small>
+      </div>
+
+      <div class="text-center mb-3">
+        <span class="badge bg-secondary">OR</span>
+      </div>
+
+      <!-- Manual JSON Entry -->
+      <div class="mb-4">
+        <label class="form-label fw-bold">Option 2: Paste JSON Content</label>
+        <textarea 
+          class="form-control font-monospace"
+          rows="15"
+          [(ngModel)]="jsonContent"
+          placeholder='Paste your tax return JSON here... Example:
+{
+  "taxpayerId": "123-45-6789",
+  "taxYear": 2024,
+  "filingStatus": "Single",
+  "totalIncome": 75000,
+  ...
+}'
+          style="font-size: 0.875rem;">
+        </textarea>
+        <div class="mt-2">
+          <button type="button" class="btn btn-sm btn-secondary me-2" (click)="loadJsonFromTextarea()">
+            <i class="bi bi-arrow-down-circle me-1"></i>
+            Load to Form
+          </button>
+          <button type="button" class="btn btn-sm btn-info" (click)="downloadSampleJson()">
+            <i class="bi bi-download me-1"></i>
+            Download Sample JSON
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="mb-3">
-      <button type="submit" class="btn btn-primary" [disabled]="loading">
-        {{ loading ? 'Validating...' : 'Submit for Validation' }}
+      <!-- JSON Error Display -->
+      <div *ngIf="jsonError" class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>JSON Error:</strong> {{ jsonError }}
+        <button type="button" class="btn-close" (click)="jsonError = null"></button>
+      </div>
+
+      <!-- JSON Preview -->
+      <div *ngIf="jsonContent && !jsonError" class="alert alert-success">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        JSON loaded successfully! You can now submit for validation or switch to form view to see the data.
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+        <button type="button" class="btn btn-outline-primary" (click)="setInputMode('form')" *ngIf="jsonContent">
+          <i class="bi bi-eye me-2"></i>
+          Preview in Form
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Input Section (existing form) -->
+  <div *ngIf="inputMode === 'form'">
+    <!-- Export JSON Button -->
+    <div class="mb-3 text-end">
+      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="exportFormToJson()">
+        <i class="bi bi-download me-1"></i>
+        Export Current Form as JSON
       </button>
     </div>
-  </form>
 
-  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+    <form [formGroup]="taxForm" (ngSubmit)="onSubmit()">
+      <!-- Navigation Tabs -->
+      <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'personal'" (click)="setActiveTab('personal')" style="cursor: pointer">
+            Personal Info
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'dependents'" (click)="setActiveTab('dependents')" style="cursor: pointer">
+            Dependents
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'income'" (click)="setActiveTab('income')" style="cursor: pointer">
+            Income (Lines 1-9)
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'deductions'" (click)="setActiveTab('deductions')" style="cursor: pointer">
+            Deductions (Lines 10-15)
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'tax'" (click)="setActiveTab('tax')" style="cursor: pointer">
+            Tax & Credits (Lines 16-23)
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'payments'" (click)="setActiveTab('payments')" style="cursor: pointer">
+            Payments (Lines 24-33)
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'banking'" (click)="setActiveTab('banking')" style="cursor: pointer">
+            Banking & Signature
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'schedules'" (click)="setActiveTab('schedules')" style="cursor: pointer">
+            Schedules
+          </a>
+        </li>
+      </ul>
 
+      <!-- Personal Information Tab -->
+      <div *ngIf="activeTab === 'personal'" class="card mb-3">
+        <div class="card-header bg-primary text-white">Personal Information & Filing Status</div>
+        <div class="card-body" formGroupName="form1040">
+          <h5 class="mb-3">Basic Information</h5>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Taxpayer ID</label>
+              <input type="text" class="form-control" formControlName="../taxpayerId">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Tax Year</label>
+              <input type="number" class="form-control" formControlName="../taxYear">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Filing Status</label>
+              <select class="form-select" formControlName="../filingStatus">
+                <option value="Single">Single</option>
+                <option value="MarriedFilingJointly">Married Filing Jointly</option>
+                <option value="MarriedFilingSeparately">Married Filing Separately</option>
+                <option value="HeadOfHousehold">Head of Household</option>
+                <option value="QualifyingWidow">Qualifying Surviving Spouse</option>
+              </select>
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Taxpayer Information</h5>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label class="form-label">First Name *</label>
+              <input type="text" class="form-control" formControlName="firstName" required>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Last Name *</label>
+              <input type="text" class="form-control" formControlName="lastName" required>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">SSN *</label>
+              <input type="text" class="form-control" formControlName="ssn" placeholder="###-##-####" required>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Phone Number</label>
+              <input type="tel" class="form-control" formControlName="taxpayerPhoneNumber">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" formControlName="taxpayerEmail">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Occupation</label>
+              <input type="text" class="form-control" formControlName="taxpayerOccupation">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Spouse Information (if applicable)</h5>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Spouse First Name</label>
+              <input type="text" class="form-control" formControlName="spouseFirstName">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Spouse Last Name</label>
+              <input type="text" class="form-control" formControlName="spouseLastName">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Spouse SSN</label>
+              <input type="text" class="form-control" formControlName="spouseSSN" placeholder="###-##-####">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Spouse Occupation</label>
+              <input type="text" class="form-control" formControlName="spouseOccupation">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Address</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Street Address *</label>
+              <input type="text" class="form-control" formControlName="address" required>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">City *</label>
+              <input type="text" class="form-control" formControlName="city" required>
+            </div>
+            <div class="col-md-2 mb-3">
+              <label class="form-label">State *</label>
+              <input type="text" class="form-control" formControlName="state" maxlength="2" required>
+            </div>
+            <div class="col-md-1 mb-3">
+              <label class="form-label">ZIP *</label>
+              <input type="text" class="form-control" formControlName="zipCode" required>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Foreign Country</label>
+              <input type="text" class="form-control" formControlName="foreignCountry">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Foreign Province</label>
+              <input type="text" class="form-control" formControlName="foreignProvince">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Foreign Postal Code</label>
+              <input type="text" class="form-control" formControlName="foreignPostalCode">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Filing Status Checkboxes</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" formControlName="isPresidentialElectionCampaign">
+                <label class="form-check-label">Presidential Election Campaign Fund (You)</label>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" formControlName="isSpousePresidentialElectionCampaign">
+                <label class="form-check-label">Presidential Election Campaign Fund (Spouse)</label>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" formControlName="canBeClaimedAsDependent">
+                <label class="form-check-label">Can be claimed as a dependent</label>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" formControlName="isSpouseItemizingDeductions">
+                <label class="form-check-label">Spouse itemizes on separate return</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dependents Tab -->
+      <div *ngIf="activeTab === 'dependents'" class="card mb-3">
+        <div class="card-header bg-primary text-white">
+          Dependents
+          <button type="button" class="btn btn-sm btn-light float-end" (click)="addDependent()">
+            + Add Dependent
+          </button>
+        </div>
+        <div class="card-body" formGroupName="form1040">
+          <div *ngIf="dependents.length === 0" class="alert alert-info">
+            No dependents added. Click "+ Add Dependent" to add one.
+          </div>
+
+          <div *ngFor="let dependent of dependents.controls; let i = index" class="card mb-3" [formGroupName]="'dependents'">
+            <div class="card-header">
+              Dependent #{{ i + 1 }}
+              <button type="button" class="btn btn-sm btn-danger float-end" (click)="removeDependent(i)">
+                Remove
+              </button>
+            </div>
+            <div class="card-body" [formArrayName]="'dependents'" [formGroupName]="i">
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">First Name *</label>
+                  <input type="text" class="form-control" formControlName="firstName" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Last Name *</label>
+                  <input type="text" class="form-control" formControlName="lastName" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">SSN *</label>
+                  <input type="text" class="form-control" formControlName="ssn" placeholder="###-##-####" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Relationship *</label>
+                  <select class="form-select" formControlName="relationship" required>
+                    <option value="">Select...</option>
+                    <option value="Son">Son</option>
+                    <option value="Daughter">Daughter</option>
+                    <option value="Stepchild">Stepchild</option>
+                    <option value="Foster child">Foster child</option>
+                    <option value="Parent">Parent</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" formControlName="isQualifyingChildForChildTaxCredit">
+                    <label class="form-check-label">Qualifying child for Child Tax Credit</label>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" formControlName="isQualifyingChildForOtherCredit">
+                    <label class="form-check-label">Qualifying for other dependent credit</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" formControlName="hasMoreThanFourDependents">
+            <label class="form-check-label">Check if more than four dependents</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Income Tab (Lines 1-9) -->
+      <div *ngIf="activeTab === 'income'" class="card mb-3">
+        <div class="card-header bg-primary text-white">Income (Lines 1-9)</div>
+        <div class="card-body" formGroupName="form1040">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 1 - Wages, salaries, tips</label>
+              <input type="number" class="form-control" formControlName="line1_Wages" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 2a - Tax-exempt interest</label>
+              <input type="number" class="form-control" formControlName="line2a_TaxExemptInterest" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 2b - Taxable interest</label>
+              <input type="number" class="form-control" formControlName="line2b_TaxableInterest" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 3a - Qualified dividends</label>
+              <input type="number" class="form-control" formControlName="line3a_QualifiedDividends" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 3b - Ordinary dividends</label>
+              <input type="number" class="form-control" formControlName="line3b_OrdinaryDividends" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 4a - IRA distributions</label>
+              <input type="number" class="form-control" formControlName="line4a_IRADistributions" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 4b - Taxable IRA distributions</label>
+              <input type="number" class="form-control" formControlName="line4b_TaxableIRADistributions" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 5a - Pensions and annuities</label>
+              <input type="number" class="form-control" formControlName="line5a_PensionsAndAnnuities" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 5b - Taxable pensions and annuities</label>
+              <input type="number" class="form-control" formControlName="line5b_TaxablePensionsAndAnnuities" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 6a - Social Security benefits</label>
+              <input type="number" class="form-control" formControlName="line6a_SocialSecurityBenefits" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 6b - Taxable Social Security benefits</label>
+              <input type="number" class="form-control" formControlName="line6b_TaxableSocialSecurityBenefits" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 7 - Capital gain or (loss)</label>
+              <input type="number" class="form-control" formControlName="line7_CapitalGainOrLoss" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 8 - Other income</label>
+              <input type="number" class="form-control" formControlName="line8_OtherIncome" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Line 9 - Total income</label>
+              <input type="number" class="form-control fw-bold" formControlName="line9_TotalIncome" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deductions Tab (Lines 10-15) -->
+      <div *ngIf="activeTab === 'deductions'" class="card mb-3">
+        <div class="card-header bg-primary text-white">Deductions & Adjusted Gross Income (Lines 10-15)</div>
+        <div class="card-body" formGroupName="form1040">
+          <h5 class="mb-3">Adjustments to Income</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Line 10a - Adjustments to income</label>
+              <input type="number" class="form-control" formControlName="line10a_AdjustmentsToIncome" step="0.01">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Line 10b - Charitable contributions</label>
+              <input type="number" class="form-control" formControlName="line10b_CharitableContributions" step="0.01">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Line 10c - Total adjustments</label>
+              <input type="number" class="form-control" formControlName="line10c_TotalAdjustments" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label fw-bold">Line 11 - Adjusted gross income (AGI)</label>
+              <input type="number" class="form-control fw-bold" formControlName="line11_AdjustedGrossIncome" step="0.01">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Standard or Itemized Deductions</h5>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" formControlName="isItemizingDeductions">
+                <label class="form-check-label">Check if itemizing deductions (otherwise standard deduction applies)</label>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Line 12 - Standard or itemized deduction</label>
+              <input type="number" class="form-control" formControlName="line12_StandardOrItemizedDeduction" step="0.01">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Line 12a - Standard deduction</label>
+              <input type="number" class="form-control" formControlName="line12a_StandardDeduction" step="0.01">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Line 13 - Qualified business income deduction</label>
+              <input type="number" class="form-control" formControlName="line13_QualifiedBusinessIncomeDeduction" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Line 14 - Total deductions</label>
+              <input type="number" class="form-control fw-bold" formControlName="line14_TotalDeductions" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Line 15 - Taxable income</label>
+              <input type="number" class="form-control fw-bold" formControlName="line15_TaxableIncome" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tax and Credits Tab (Lines 16-23) -->
+      <div *ngIf="activeTab === 'tax'" class="card mb-3">
+        <div class="card-header bg-primary text-white">Tax and Credits (Lines 16-23)</div>
+        <div class="card-body" formGroupName="form1040">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 16 - Tax</label>
+              <input type="number" class="form-control" formControlName="line16_Tax" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 17 - Schedule 2 additional tax</label>
+              <input type="number" class="form-control" formControlName="line17_ScheduleTwo_AdditionalTax" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label fw-bold">Line 18 - Total tax</label>
+              <input type="number" class="form-control fw-bold" formControlName="line18_TotalTax" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 19 - Child tax credit</label>
+              <input type="number" class="form-control" formControlName="line19_ChildTaxCredit" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 20 - Schedule 3 additional credits</label>
+              <input type="number" class="form-control" formControlName="line20_ScheduleThree_AdditionalCredits" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Line 21 - Total credits</label>
+              <input type="number" class="form-control fw-bold" formControlName="line21_TotalCredits" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Line 22 - Tax after credits</label>
+              <input type="number" class="form-control fw-bold" formControlName="line22_TaxAfterCredits" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Line 23 - Other taxes</label>
+              <input type="number" class="form-control" formControlName="line23_OtherTaxes" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payments Tab (Lines 24-33) -->
+      <div *ngIf="activeTab === 'payments'" class="card mb-3">
+        <div class="card-header bg-primary text-white">Payments (Lines 24-33)</div>
+        <div class="card-body" formGroupName="form1040">
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label fw-bold">Line 24 - Total tax</label>
+              <input type="number" class="form-control fw-bold" formControlName="line24_TotalTax" step="0.01">
+            </div>
+          </div>
+          <h5 class="mb-3">Federal Income Tax Withheld and Credits</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 25a - Federal income tax withheld</label>
+              <input type="number" class="form-control" formControlName="line25a_FederalIncomeTaxWithheld" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 25b - Earned income credit (EIC)</label>
+              <input type="number" class="form-control" formControlName="line25b_EarnedIncomeCredit" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 25c - Additional child tax credit</label>
+              <input type="number" class="form-control" formControlName="line25c_AdditionalChildTaxCredit" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 25d - American opportunity credit</label>
+              <input type="number" class="form-control" formControlName="line25d_AmericanOpportunityCredit" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 26 - Recovery rebate credit</label>
+              <input type="number" class="form-control" formControlName="line26_RecoveryRebateCredit" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 27 - Other payments and credits</label>
+              <input type="number" class="form-control" formControlName="line27_OtherPaymentsAndCredits" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label fw-bold">Line 28 - Total payments</label>
+              <input type="number" class="form-control fw-bold" formControlName="line28_TotalPayments" step="0.01">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Refund or Amount Owed</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold text-success">Line 29 - Overpayment (Refund)</label>
+              <input type="number" class="form-control fw-bold" formControlName="line29_Overpayment" step="0.01">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Line 30 - Amount to be refunded</label>
+              <input type="number" class="form-control" formControlName="line30_AmountToBeRefunded" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Line 31 - Applied to next year's estimated tax</label>
+              <input type="number" class="form-control" formControlName="line31_AmountAppliedToNextYear" step="0.01">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label fw-bold text-danger">Line 32 - Amount you owe</label>
+              <input type="number" class="form-control fw-bold" formControlName="line32_AmountYouOwe" step="0.01">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Line 33 - Estimated tax penalty</label>
+              <input type="number" class="form-control" formControlName="line33_EstimatedTaxPenalty" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banking & Signature Tab -->
+      <div *ngIf="activeTab === 'banking'" class="card mb-3">
+        <div class="card-header bg-primary text-white">Banking, Third Party & Signature</div>
+        <div class="card-body" formGroupName="form1040">
+          <h5 class="mb-3">Direct Deposit Information</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Routing Number</label>
+              <input type="text" class="form-control" formControlName="routingNumber">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Account Number</label>
+              <input type="text" class="form-control" formControlName="accountNumber">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Account Type</label>
+              <select class="form-select" formControlName="accountType">
+                <option value="Checking">Checking</option>
+                <option value="Savings">Savings</option>
+              </select>
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Third Party Designee</h5>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" formControlName="hasThirdPartyDesignee">
+                <label class="form-check-label">Do you want to allow another person to discuss this return with the IRS?</label>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Designee Name</label>
+              <input type="text" class="form-control" formControlName="thirdPartyDesigneeName">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Designee Phone</label>
+              <input type="tel" class="form-control" formControlName="thirdPartyDesigneePhone">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Designee PIN</label>
+              <input type="text" class="form-control" formControlName="thirdPartyDesigneePIN" maxlength="5">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Tax Preparer Information</h5>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" formControlName="isSelfPrepared">
+                <label class="form-check-label">Self-prepared (not using a paid preparer)</label>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Preparer Name</label>
+              <input type="text" class="form-control" formControlName="preparerName">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Preparer PTIN</label>
+              <input type="text" class="form-control" formControlName="preparerPTIN">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Firm Name</label>
+              <input type="text" class="form-control" formControlName="preparerFirmName">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Firm EIN</label>
+              <input type="text" class="form-control" formControlName="preparerFirmEIN">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Preparer Address</label>
+              <input type="text" class="form-control" formControlName="preparerAddress">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Preparer Phone</label>
+              <input type="tel" class="form-control" formControlName="preparerPhone">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedules Tab -->
+      <div *ngIf="activeTab === 'schedules'" class="card mb-3">
+        <div class="card-header bg-primary text-white">Schedules & W2 Forms</div>
+        <div class="card-body">
+          <!-- Schedule A -->
+          <div class="card mb-3" formGroupName="scheduleA">
+            <div class="card-header">Schedule A - Itemized Deductions</div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Medical Expenses</label>
+                  <input type="number" class="form-control" formControlName="medicalExpenses" step="0.01">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">State and Local Taxes</label>
+                  <input type="number" class="form-control" formControlName="stateAndLocalTaxes" step="0.01">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Mortgage Interest</label>
+                  <input type="number" class="form-control" formControlName="mortgageInterest" step="0.01">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Charitable Contributions</label>
+                  <input type="number" class="form-control" formControlName="charitableContributions" step="0.01">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-12 mb-3">
+                  <label class="form-label fw-bold">Total Itemized Deductions</label>
+                  <input type="number" class="form-control fw-bold" formControlName="totalItemizedDeductions" step="0.01">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Schedule C -->
+          <div class="card mb-3" formGroupName="scheduleC">
+            <div class="card-header">Schedule C - Profit or Loss from Business</div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Business Name</label>
+                  <input type="text" class="form-control" formControlName="businessName">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Gross Receipts</label>
+                  <input type="number" class="form-control" formControlName="grossReceipts" step="0.01">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Total Expenses</label>
+                  <input type="number" class="form-control" formControlName="totalExpenses" step="0.01">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Net Profit</label>
+                  <input type="number" class="form-control fw-bold" formControlName="netProfit" step="0.01">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- W2 Forms -->
+          <div class="card mb-3">
+            <div class="card-header">
+              W-2 Forms
+              <button type="button" class="btn btn-sm btn-light float-end" (click)="addW2Form()">
+                + Add W2
+              </button>
+            </div>
+            <div class="card-body">
+              <div *ngIf="w2Forms.length === 0" class="alert alert-info">
+                No W-2 forms added. Click "+ Add W2" to add one.
+              </div>
+
+              <div *ngFor="let w2 of w2Forms.controls; let i = index" class="card mb-3" formArrayName="w2Forms">
+                <div class="card-header">
+                  W-2 Form #{{ i + 1 }}
+                  <button type="button" class="btn btn-sm btn-danger float-end" (click)="removeW2Form(i)">
+                    Remove
+                  </button>
+                </div>
+                <div class="card-body" [formGroupName]="i">
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label">Employer Name *</label>
+                      <input type="text" class="form-control" formControlName="employerName" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label">Employer EIN *</label>
+                      <input type="text" class="form-control" formControlName="employerEIN" required>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Wages *</label>
+                      <input type="number" class="form-control" formControlName="wages" step="0.01" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Federal Tax Withheld</label>
+                      <input type="number" class="form-control" formControlName="federalTaxWithheld" step="0.01">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Social Security Wages</label>
+                      <input type="number" class="form-control" formControlName="socialSecurityWages" step="0.01">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="mb-3 text-center">
+        <button type="submit" class="btn btn-primary btn-lg" [disabled]="loading">
+          <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+          {{ loading ? 'Validating...' : 'Submit for Validation' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Submit Button for JSON Mode -->
+  <div *ngIf="inputMode === 'json'" class="mb-3 text-center">
+    <button type="button" class="btn btn-primary btn-lg" (click)="onSubmit()" [disabled]="loading || !jsonContent">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      {{ loading ? 'Validating...' : 'Submit JSON for Validation' }}
+    </button>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="error" class="alert alert-danger alert-dismissible fade show">
+    <strong>Error:</strong> {{ error }}
+    <button type="button" class="btn-close" (click)="error = null"></button>
+  </div>
+
+  <!-- Validation Results -->
   <div *ngIf="validationResult" class="mt-4">
     <h3>Validation Results</h3>
     <div [class.alert-success]="validationResult.isValid" [class.alert-danger]="!validationResult.isValid" class="alert">
-      <strong>Status:</strong> {{ validationResult.isValid ? 'Valid' : 'Invalid' }}
-      <br>
-      <strong>Violations:</strong> {{ validationResult.violationCount }}
+      <h4>
+        <i [class.bi-check-circle-fill]="validationResult.isValid" [class.bi-x-circle-fill]="!validationResult.isValid"></i>
+        Status: {{ validationResult.isValid ? 'Valid ✓' : 'Invalid ✗' }}
+      </h4>
+      <p class="mb-0"><strong>Total Violations:</strong> {{ validationResult.violationCount }}</p>
     </div>
 
-    <ul *ngIf="validationResult.violations.length > 0" class="list-group">
-      <li *ngFor="let v of validationResult.violations" class="list-group-item list-group-item-warning">
-        <strong>[{{ v.ruleId }}]</strong> {{ v.message }} ({{ v.category }})
-      </li>
-    </ul>
+    <div *ngIf="validationResult.violations.length > 0">
+      <h4>Violations Found:</h4>
+      <ul class="list-group">
+        <li *ngFor="let v of validationResult.violations" class="list-group-item list-group-item-warning">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong class="text-danger">[{{ v.ruleId }}]</strong> {{ v.message }}
+              <br>
+              <small class="text-muted">Category: {{ v.category }} | Severity: {{ v.severity }}</small>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
   </div>
 </div>
