@@ -7,4 +7,8 @@ public interface IRuleEngine
     ValidationResult ValidateTaxReturn(TaxReturn taxReturn, List<Rule> rules);
 
     ValidationResult ValidateTaxReturn(Dictionary<string, object> taxReturnData, List<Rule> rules);
+
+    ReadinessScore CalculateReadinessScore(TaxReturn taxReturn, List<Rule> rules);
+
+    ReadinessScore CalculateReadinessScore(Dictionary<string, object> taxReturnData, List<Rule> rules);
 }

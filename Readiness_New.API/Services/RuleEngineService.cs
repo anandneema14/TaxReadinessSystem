@@ -66,6 +66,78 @@ public class RuleEngineService : IRuleEngine
         return result;
     }
 
+    public ReadinessScore CalculateReadinessScore(TaxReturn taxReturn, List<Rule> rules)
+    {
+        var data = ConvertObjectToDictionary(taxReturn);
+        return CalculateReadinessScore(data, rules);
+    }
+
+    public ReadinessScore CalculateReadinessScore(Dictionary<string, object> taxReturnData, List<Rule> rules)
+    {
+        var validationResult = ValidateTaxReturn(taxReturnData, rules);
+        var score = 100.0;
+        var categoryScores = new Dictionary<string, double>();
+        var categoryCounts = new Dictionary<string, int>();
+
+        // Initialize categories from rules
+        foreach (var rule in rules.Where(r => r.Enabled))
+        {
+            if (!string.IsNullOrEmpty(rule.Category))
+            {
+                if (!categoryScores.ContainsKey(rule.Category))
+                {
+                    categoryScores[rule.Category] = 100.0;
+                    categoryCounts[rule.Category] = 0;
+                }
+                categoryCounts[rule.Category]++;
+            }
+        }
+
+        foreach (var violation in validationResult.Violations)
+        {
+            double penalty = violation.Severity.ToUpper() switch
+            {
+                "ERROR" => 20.0,
+                "WARNING" => 5.0,
+                "INFO" => 1.0,
+                _ => 0.0
+            };
+
+            score -= penalty;
+
+            if (!string.IsNullOrEmpty(violation.Category) && categoryScores.ContainsKey(violation.Category))
+            {
+                categoryScores[violation.Category] -= penalty;
+            }
+        }
+
+        score = Math.Max(0, score);
+
+        var readinessScore = new ReadinessScore
+        {
+            Score = score,
+            ValidationResult = validationResult,
+            CategoryScores = categoryScores.Select(cs => new CategoryScore
+            {
+                Category = cs.Key,
+                Score = Math.Max(0, cs.Value)
+            }).ToList()
+        };
+
+        readinessScore.Level = score switch
+        {
+            >= 90 => "Excellent",
+            >= 75 => "Good",
+            >= 50 => "Fair",
+            _ => "Poor"
+        };
+
+        readinessScore.Summary = $"Readiness Score: {score:F1} ({readinessScore.Level}). " +
+                                 $"{validationResult.ViolationCount} violations found across {validationResult.TotalRulesEvaluated} rules.";
+
+        return readinessScore;
+    }
+
     private bool EvaluateCondition(Condition condition, Dictionary<string, object> data, List<string> affectedFields)
     {
         if (condition == null)
