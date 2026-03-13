@@ -14,6 +14,8 @@ public class Program
         var ruleEngineSection = builder.Configuration.GetSection("RuleEngine");
         var provider = ruleEngineSection["Provider"];
 
+        bool useAAzureAppConfig = false;
+
         if (provider?.Equals("AzureAppConfig", StringComparison.OrdinalIgnoreCase) == true)
         {
             var appConfigConnString = ruleEngineSection["AzureAppConfig:ConnectionString"] ?? connectionString;
@@ -28,6 +30,7 @@ public class Program
                                       .SetCacheExpiration(TimeSpan.FromSeconds(30));
                            });
                 });
+                useAAzureAppConfig = true;
             }
         }
 
@@ -61,7 +64,10 @@ public class Program
 
         app.UseCors("AllowAngular");
 
-        app.UseAzureAppConfiguration();
+        if (useAAzureAppConfig)
+        {
+            app.UseAzureAppConfiguration();
+        }
 
         app.UseAuthorization();
         
