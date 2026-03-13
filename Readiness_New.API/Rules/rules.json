@@ -73,7 +73,7 @@
       "condition": {
         "field": "FilingStatus",
         "operator": "NotIn",
-        "value": ["Single", "MarriedFilingJointly", "MarriedFilingSeparately", "HeadOfHousehold", "QualifyingWidow"]
+        "value": ["Single", "Married Filing Jointly", "Married Filing Separately", "Head of Household", "Qualifying Widow"]
       }
     },
     {
@@ -85,531 +85,13 @@
       "category": "RequiredForms",
       "condition": {
         "field": "Form1040",
-        "operator": "IsNull"
+        "operator": "NotExists"
       }
     },
     {
       "id": "TR-007",
-      "name": "Missing SSN on Form 1040",
-      "description": "Social Security Number is required on Form 1040",
-      "enabled": true,
-      "severity": "Error",
-      "category": "RequiredFields",
-      "condition": {
-        "field": "Form1040.SSN",
-        "operator": "IsEmpty"
-      }
-    },
-    {
-      "id": "TR-008",
-      "name": "Invalid SSN Format",
-      "description": "SSN must be in format ###-##-####",
-      "enabled": true,
-      "severity": "Error",
-      "category": "DataValidation",
-      "condition": {
-        "field": "Form1040.SSN",
-        "operator": "NotMatch",
-        "value": "^\\d{3}-\\d{2}-\\d{4}$"
-      }
-    },
-    {
-      "id": "TR-009",
-      "name": "Missing First Name",
-      "description": "First name is required on Form 1040",
-      "enabled": true,
-      "severity": "Error",
-      "category": "RequiredFields",
-      "condition": {
-        "field": "Form1040.FirstName",
-        "operator": "IsEmpty"
-      }
-    },
-    {
-      "id": "TR-010",
-      "name": "Missing Last Name",
-      "description": "Last name is required on Form 1040",
-      "enabled": true,
-      "severity": "Error",
-      "category": "RequiredFields",
-      "condition": {
-        "field": "Form1040.LastName",
-        "operator": "IsEmpty"
-      }
-    },
-    {
-      "id": "TR-011",
-      "name": "Missing Address",
-      "description": "Complete address is required on Form 1040",
-      "enabled": true,
-      "severity": "Error",
-      "category": "RequiredFields",
-      "condition": {
-        "logicalOperator": "OR",
-        "conditions": [
-          {
-            "field": "Form1040.Address",
-            "operator": "IsEmpty"
-          },
-          {
-            "field": "Form1040.City",
-            "operator": "IsEmpty"
-          },
-          {
-            "field": "Form1040.State",
-            "operator": "IsEmpty"
-          },
-          {
-            "field": "Form1040.ZipCode",
-            "operator": "IsEmpty"
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-012",
-      "name": "Invalid ZIP Code Format",
-      "description": "ZIP code must be in format ##### or #####-####",
-      "enabled": true,
-      "severity": "Error",
-      "category": "DataValidation",
-      "condition": {
-        "field": "Form1040.ZipCode",
-        "operator": "NotMatch",
-        "value": "^\\d{5}(-\\d{4})?$"
-      }
-    },
-    {
-      "id": "TR-013",
-      "name": "Spouse Information Required for Joint Filing",
-      "description": "Spouse SSN and name required when filing status is Married Filing Jointly",
-      "enabled": true,
-      "severity": "Error",
-      "category": "ConsistencyCheck",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "FilingStatus",
-            "operator": "EQ",
-            "value": "MarriedFilingJointly"
-          },
-          {
-            "logicalOperator": "OR",
-            "conditions": [
-              {
-                "field": "Form1040.SpouseSSN",
-                "operator": "IsEmpty"
-              },
-              {
-                "field": "Form1040.SpouseFirstName",
-                "operator": "IsEmpty"
-              },
-              {
-                "field": "Form1040.SpouseLastName",
-                "operator": "IsEmpty"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-014",
-      "name": "Negative Line 15 Taxable Income",
-      "description": "Line 15 Taxable Income cannot be negative",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line15_TaxableIncome",
-        "operator": "LT",
-        "value": 0
-      }
-    },
-    {
-      "id": "TR-015",
-      "name": "Total Income Calculation Error",
-      "description": "Line 9 Total Income should equal sum of income lines 1-8",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line9_TotalIncome",
-        "operator": "NotEqualToSum",
-        "value": [
-          "Form1040.Line1_Wages",
-          "Form1040.Line2b_TaxableInterest",
-          "Form1040.Line3b_OrdinaryDividends",
-          "Form1040.Line4b_TaxableIRADistributions",
-          "Form1040.Line5b_TaxablePensionsAndAnnuities",
-          "Form1040.Line6b_TaxableSocialSecurityBenefits",
-          "Form1040.Line7_CapitalGainOrLoss",
-          "Form1040.Line8_OtherIncome"
-        ]
-      }
-    },
-    {
-      "id": "TR-016",
-      "name": "Qualified Dividends Exceed Ordinary Dividends",
-      "description": "Qualified dividends (Line 3a) cannot exceed ordinary dividends (Line 3b)",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line3a_QualifiedDividends",
-        "operator": "GT",
-        "value": "Form1040.Line3b_OrdinaryDividends"
-      }
-    },
-    {
-      "id": "TR-017",
-      "name": "Taxable IRA Exceeds Total IRA",
-      "description": "Taxable IRA distributions (Line 4b) cannot exceed total IRA distributions (Line 4a)",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line4b_TaxableIRADistributions",
-        "operator": "GT",
-        "value": "Form1040.Line4a_IRADistributions"
-      }
-    },
-    {
-      "id": "TR-018",
-      "name": "Taxable Pension Exceeds Total Pension",
-      "description": "Taxable pensions (Line 5b) cannot exceed total pensions (Line 5a)",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line5b_TaxablePensionsAndAnnuities",
-        "operator": "GT",
-        "value": "Form1040.Line5a_PensionsAndAnnuities"
-      }
-    },
-    {
-      "id": "TR-019",
-      "name": "Taxable Social Security Exceeds Total",
-      "description": "Taxable Social Security (Line 6b) cannot exceed total Social Security (Line 6a)",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line6b_TaxableSocialSecurityBenefits",
-        "operator": "GT",
-        "value": "Form1040.Line6a_SocialSecurityBenefits"
-      }
-    },
-    {
-      "id": "TR-020",
-      "name": "AGI Calculation Error",
-      "description": "Adjusted Gross Income (Line 11) must equal Total Income (Line 9) minus Total Adjustments (Line 10c)",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line11_AdjustedGrossIncome",
-        "operator": "NotEqualToFormula",
-        "value": "Form1040.Line9_TotalIncome - Form1040.Line10c_TotalAdjustments"
-      }
-    },
-    {
-      "id": "TR-021",
-      "name": "Standard Deduction Exceeds Limit - Single",
-      "description": "Standard deduction for Single filers exceeds $13,850 (2023)",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "DataValidation",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "FilingStatus",
-            "operator": "EQ",
-            "value": "Single"
-          },
-          {
-            "field": "Form1040.IsItemizingDeductions",
-            "operator": "EQ",
-            "value": false
-          },
-          {
-            "field": "Form1040.Line12a_StandardDeduction",
-            "operator": "GT",
-            "value": 13850
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-022",
-      "name": "Standard Deduction Exceeds Limit - Married Filing Jointly",
-      "description": "Standard deduction for Married Filing Jointly exceeds $27,700 (2023)",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "DataValidation",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "FilingStatus",
-            "operator": "EQ",
-            "value": "MarriedFilingJointly"
-          },
-          {
-            "field": "Form1040.IsItemizingDeductions",
-            "operator": "EQ",
-            "value": false
-          },
-          {
-            "field": "Form1040.Line12a_StandardDeduction",
-            "operator": "GT",
-            "value": 27700
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-023",
-      "name": "Standard Deduction Exceeds Limit - Head of Household",
-      "description": "Standard deduction for Head of Household exceeds $20,800 (2023)",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "DataValidation",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "FilingStatus",
-            "operator": "EQ",
-            "value": "HeadOfHousehold"
-          },
-          {
-            "field": "Form1040.IsItemizingDeductions",
-            "operator": "EQ",
-            "value": false
-          },
-          {
-            "field": "Form1040.Line12a_StandardDeduction",
-            "operator": "GT",
-            "value": 20800
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-024",
-      "name": "Total Tax Calculation Error",
-      "description": "Line 24 Total Tax must equal Line 22 (Tax After Credits) plus Line 23 (Other Taxes)",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line24_TotalTax",
-        "operator": "NotEqualToSum",
-        "value": [
-          "Form1040.Line22_TaxAfterCredits",
-          "Form1040.Line23_OtherTaxes"
-        ]
-      }
-    },
-    {
-      "id": "TR-025",
-      "name": "Total Payments Calculation Error",
-      "description": "Line 28 Total Payments should equal sum of all payment lines",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "field": "Form1040.Line28_TotalPayments",
-        "operator": "NotEqualToSum",
-        "value": [
-          "Form1040.Line25a_FederalIncomeTaxWithheld",
-          "Form1040.Line25b_EarnedIncomeCredit",
-          "Form1040.Line25c_AdditionalChildTaxCredit",
-          "Form1040.Line25d_AmericanOpportunityCredit",
-          "Form1040.Line26_RecoveryRebateCredit",
-          "Form1040.Line27_OtherPaymentsAndCredits"
-        ]
-      }
-    },
-    {
-      "id": "TR-026",
-      "name": "Both Refund and Amount Owed",
-      "description": "Cannot have both overpayment (Line 29) and amount owed (Line 32)",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "Form1040.Line29_Overpayment",
-            "operator": "GT",
-            "value": 0
-          },
-          {
-            "field": "Form1040.Line32_AmountYouOwe",
-            "operator": "GT",
-            "value": 0
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-027",
-      "name": "Overpayment Allocation Error",
-      "description": "Overpayment (Line 29) must equal Refund (Line 30) plus Amount Applied to Next Year (Line 31)",
-      "enabled": true,
-      "severity": "Error",
-      "category": "CalculationValidation",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "Form1040.Line29_Overpayment",
-            "operator": "GT",
-            "value": 0
-          },
-          {
-            "field": "Form1040.Line29_Overpayment",
-            "operator": "NotEqualToSum",
-            "value": [
-              "Form1040.Line30_AmountToBeRefunded",
-              "Form1040.Line31_AmountAppliedToNextYear"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-028",
-      "name": "Dependent Count Mismatch",
-      "description": "Number of dependents claimed does not match actual dependent list count",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "ConsistencyCheck",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "HasDependents",
-            "operator": "EQ",
-            "value": true
-          },
-          {
-            "field": "NumberOfDependents",
-            "operator": "NotEqualToCount",
-            "value": "Form1040.Dependents"
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-029",
-      "name": "Dependent Missing SSN",
-      "description": "All dependents must have a valid Social Security Number",
-      "enabled": true,
-      "severity": "Error",
-      "category": "RequiredFields",
-      "condition": {
-        "field": "Form1040.Dependents",
-        "operator": "AnyItemMissing",
-        "value": "SSN"
-      }
-    },
-    {
-      "id": "TR-030",
-      "name": "Invalid Dependent SSN Format",
-      "description": "Dependent SSN must be in format ###-##-####",
-      "enabled": true,
-      "severity": "Error",
-      "category": "DataValidation",
-      "condition": {
-        "field": "Form1040.Dependents",
-        "operator": "AnyItemNotMatch",
-        "value": {
-          "field": "SSN",
-          "pattern": "^\\d{3}-\\d{2}-\\d{4}$"
-        }
-      }
-    },
-    {
-      "id": "TR-031",
-      "name": "Child Tax Credit Without Qualifying Dependents",
-      "description": "Child Tax Credit claimed but no qualifying children listed",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "ConsistencyCheck",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "Form1040.Line19_ChildTaxCredit",
-            "operator": "GT",
-            "value": 0
-          },
-          {
-            "field": "Form1040.Dependents",
-            "operator": "NoneMatch",
-            "value": {
-              "field": "IsQualifyingChildForChildTaxCredit",
-              "operator": "EQ",
-              "value": true
-            }
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-032",
-      "name": "W2 Wages Mismatch",
-      "description": "Total wages from W2 forms should match Line 1 Wages",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "ConsistencyCheck",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "W2Forms",
-            "operator": "Exists"
-          },
-          {
-            "field": "Form1040.Line1_Wages",
-            "operator": "NotEqualToSum",
-            "value": "W2Forms.Wages"
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-033",
-      "name": "Federal Withholding Mismatch",
-      "description": "Line 25a Federal withholding should match total from W2 forms",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "ConsistencyCheck",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "W2Forms",
-            "operator": "Exists"
-          },
-          {
-            "field": "Form1040.Line25a_FederalIncomeTaxWithheld",
-            "operator": "NotEqualToSum",
-            "value": "W2Forms.FederalTaxWithheld"
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-034",
-      "name": "High Wages Without W2",
-      "description": "Wages over $10,000 reported but no W2 forms attached",
+      "name": "High Income Missing W2",
+      "description": "Tax returns with wages over $10,000 must include W2 forms",
       "enabled": true,
       "severity": "Warning",
       "category": "RequiredForms",
@@ -622,24 +104,14 @@
             "value": 10000
           },
           {
-            "logicalOperator": "OR",
-            "conditions": [
-              {
-                "field": "W2Forms",
-                "operator": "IsNull"
-              },
-              {
-                "field": "W2Forms",
-                "operator": "CountEQ",
-                "value": 0
-              }
-            ]
+            "field": "W2Forms",
+            "operator": "NotExists"
           }
         ]
       }
     },
     {
-      "id": "TR-035",
+      "id": "TR-008",
       "name": "Schedule C Without Business Income",
       "description": "Schedule C filed but no business income reported",
       "enabled": true,
@@ -653,7 +125,7 @@
             "operator": "Exists"
           },
           {
-            "logicalOperator": "AND",
+            "logicalOperator": "OR",
             "conditions": [
               {
                 "field": "ScheduleC.GrossReceipts",
@@ -671,107 +143,32 @@
       }
     },
     {
-      "id": "TR-036",
-      "name": "Itemizing Without Schedule A",
-      "description": "Itemizing deductions selected but Schedule A is missing",
+      "id": "TR-009",
+      "name": "Dependents Without Count",
+      "description": "If HasDependents is true, NumberOfDependents must be greater than 0",
       "enabled": true,
       "severity": "Error",
-      "category": "RequiredForms",
+      "category": "ConsistencyCheck",
       "condition": {
         "logicalOperator": "AND",
         "conditions": [
           {
-            "field": "Form1040.IsItemizingDeductions",
+            "field": "HasDependents",
             "operator": "EQ",
             "value": true
           },
           {
-            "field": "ScheduleA",
-            "operator": "IsNull"
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-037",
-      "name": "Itemized Deductions Less Than Standard",
-      "description": "Itemizing deductions when total is less than standard deduction",
-      "enabled": true,
-      "severity": "Warning",
-      "category": "OptimizationSuggestion",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "Form1040.IsItemizingDeductions",
-            "operator": "EQ",
-            "value": true
-          },
-          {
-            "field": "ScheduleA.TotalItemizedDeductions",
-            "operator": "LT",
-            "value": "Form1040.Line12a_StandardDeduction"
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-038",
-      "name": "Direct Deposit Missing Banking Info",
-      "description": "Refund requested but direct deposit information is incomplete",
-      "enabled": true,
-      "severity": "Error",
-      "category": "RequiredFields",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "Form1040.Line30_AmountToBeRefunded",
-            "operator": "GT",
+            "field": "NumberOfDependents",
+            "operator": "LTE",
             "value": 0
-          },
-          {
-            "logicalOperator": "OR",
-            "conditions": [
-              {
-                "field": "Form1040.RoutingNumber",
-                "operator": "IsEmpty"
-              },
-              {
-                "field": "Form1040.AccountNumber",
-                "operator": "IsEmpty"
-              }
-            ]
           }
         ]
       }
     },
     {
-      "id": "TR-039",
-      "name": "Invalid Routing Number Format",
-      "description": "Bank routing number must be exactly 9 digits",
-      "enabled": true,
-      "severity": "Error",
-      "category": "DataValidation",
-      "condition": {
-        "logicalOperator": "AND",
-        "conditions": [
-          {
-            "field": "Form1040.RoutingNumber",
-            "operator": "IsNotEmpty"
-          },
-          {
-            "field": "Form1040.RoutingNumber",
-            "operator": "NotMatch",
-            "value": "^\\d{9}$"
-          }
-        ]
-      }
-    },
-    {
-      "id": "TR-040",
-      "name": "Excessive Charitable Contributions",
-      "description": "Charitable contributions exceed 60% of AGI (potential audit flag)",
+      "id": "TR-010",
+      "name": "Excessive Charitable Deductions",
+      "description": "Charitable contributions exceed 60% of total income",
       "enabled": true,
       "severity": "Warning",
       "category": "AuditRisk",
@@ -780,20 +177,12 @@
         "conditions": [
           {
             "field": "ScheduleA.CharitableContributions",
-            "operator": "GT",
-            "value": 0
+            "operator": "Exists"
           },
           {
-            "field": "Form1040.Line11_AdjustedGrossIncome",
+            "field": "TotalIncome",
             "operator": "GT",
             "value": 0
-          },
-          {
-            "field": "ScheduleA.CharitableContributions",
-            "operator": "GT",
-            "value": {
-              "formula": "Form1040.Line11_AdjustedGrossIncome * 0.6"
-            }
           }
         ]
       }
