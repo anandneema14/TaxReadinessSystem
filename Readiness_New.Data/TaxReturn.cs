@@ -28,6 +28,12 @@ public class Form1040
     public decimal Line2_Interest { get; set; }
     public decimal Line3_Dividends { get; set; }
     public decimal Line8_TotalIncome { get; set; }
+    public decimal Line9_StandardDeduction { get; set; }
+    public decimal Line11_TaxableIncome { get; set; }
+    public decimal Line16_TotalTax { get; set; }
+    public decimal Line24_TotalPayments { get; set; }
+    public decimal Line34_Refund { get; set; }
+    public decimal Line37_AmountYouOwe { get; set; }
 }
 
 public class ScheduleA

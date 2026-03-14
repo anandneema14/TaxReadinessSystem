@@ -1,6 +1,25 @@
 <div class="container mt-4">
-  <h2>Tax Return Data Input</h2>
-  <form [formGroup]="taxForm" (ngSubmit)="onSubmit()">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Tax Return Data Input</h2>
+    <button class="btn btn-outline-secondary" (click)="toggleMode()">
+      {{ uploadMode ? 'Switch to Manual Entry' : 'Switch to File Upload' }}
+    </button>
+  </div>
+
+  <div *ngIf="uploadMode" class="card mb-4">
+    <div class="card-header">JSON File Upload</div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label for="formFile" class="form-label">Select Tax Return JSON file</label>
+        <input class="form-control" type="file" id="formFile" (change)="onFileSelected($event)" accept=".json,application/json">
+      </div>
+      <button class="btn btn-primary" (click)="onFileUpload()" [disabled]="loading || !selectedFile">
+        {{ loading ? 'Uploading & Validating...' : 'Upload & Validate' }}
+      </button>
+    </div>
+  </div>
+
+  <form *ngIf="!uploadMode" [formGroup]="taxForm" (ngSubmit)="onSubmit()">
     <div class="card mb-3">
       <div class="card-header">Basic Information</div>
       <div class="card-body">
@@ -59,6 +78,38 @@
           <div class="col-md-4 mb-3">
             <label class="form-label">Wages (Line 1)</label>
             <input type="number" class="form-control" formControlName="line1_Wages">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Total Income (Line 8)</label>
+            <input type="number" class="form-control" formControlName="line8_TotalIncome">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Standard Deduction (Line 9)</label>
+            <input type="number" class="form-control" formControlName="line9_StandardDeduction">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Taxable Income (Line 11)</label>
+            <input type="number" class="form-control" formControlName="line11_TaxableIncome">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Total Tax (Line 16)</label>
+            <input type="number" class="form-control" formControlName="line16_TotalTax">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Total Payments (Line 24)</label>
+            <input type="number" class="form-control" formControlName="line24_TotalPayments">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Refund (Line 34)</label>
+            <input type="number" class="form-control" formControlName="line34_Refund">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Amount Owed (Line 37)</label>
+            <input type="number" class="form-control" formControlName="line37_AmountYouOwe">
           </div>
         </div>
       </div>

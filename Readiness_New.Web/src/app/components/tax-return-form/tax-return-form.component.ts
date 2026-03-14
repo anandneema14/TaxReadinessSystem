@@ -16,6 +16,8 @@ export class TaxReturnFormComponent {
   validationResult: ValidationResult | null = null;
   loading = false;
   error: string | null = null;
+  uploadMode = false;
+  selectedFile: File | null = null;
 
   constructor(private fb: FormBuilder, private taxService: TaxReturnService) {
     this.taxForm = this.fb.group({
@@ -36,7 +38,13 @@ export class TaxReturnFormComponent {
         line1_Wages: [0],
         line2_Interest: [0],
         line3_Dividends: [0],
-        line8_TotalIncome: [0]
+        line8_TotalIncome: [0],
+        line9_StandardDeduction: [0],
+        line11_TaxableIncome: [0],
+        line16_TotalTax: [0],
+        line24_TotalPayments: [0],
+        line34_Refund: [0],
+        line37_AmountYouOwe: [0]
       }),
       scheduleA: this.fb.group({
         medicalExpenses: [0],
@@ -74,7 +82,67 @@ export class TaxReturnFormComponent {
     this.w2Forms.removeAt(index);
   }
 
+  toggleMode() {
+    this.uploadMode = !this.uploadMode;
+    this.error = null;
+    this.validationResult = null;
+    this.selectedFile = null;
+  }
+
+  onFileSelected(event: any) {
+    const file: File = event.target.files[0];
+    if (file && file.type === 'application/json') {
+      this.selectedFile = file;
+      this.error = null;
+    } else {
+      this.selectedFile = null;
+      this.error = 'Please select a valid JSON file.';
+    }
+  }
+
+  onFileUpload() {
+    if (!this.selectedFile) {
+      this.error = 'Please select a file first.';
+      return;
+    }
+
+    this.loading = true;
+    this.error = null;
+    this.validationResult = null;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const taxReturn: TaxReturn = JSON.parse(e.target.result);
+        this.taxService.validateTaxReturn(taxReturn).subscribe({
+          next: (result) => {
+            this.validationResult = result;
+            this.loading = false;
+          },
+          error: (err) => {
+            this.error = 'An error occurred while validating the uploaded tax return.';
+            this.loading = false;
+            console.error(err);
+          }
+        });
+      } catch (err) {
+        this.error = 'Invalid JSON file format.';
+        this.loading = false;
+      }
+    };
+    reader.onerror = () => {
+      this.error = 'Failed to read the file.';
+      this.loading = false;
+    };
+    reader.readAsText(this.selectedFile);
+  }
+
   onSubmit() {
+    if (this.uploadMode) {
+      this.onFileUpload();
+      return;
+    }
+
     if (this.taxForm.valid) {
       this.loading = true;
       this.error = null;

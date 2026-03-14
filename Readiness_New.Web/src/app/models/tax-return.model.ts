@@ -24,6 +24,12 @@ export interface Form1040 {
   line2_Interest: number;
   line3_Dividends: number;
   line8_TotalIncome: number;
+  line9_StandardDeduction: number;
+  line11_TaxableIncome: number;
+  line16_TotalTax: number;
+  line24_TotalPayments: number;
+  line34_Refund: number;
+  line37_AmountYouOwe: number;
 }
 
 export interface ScheduleA {
