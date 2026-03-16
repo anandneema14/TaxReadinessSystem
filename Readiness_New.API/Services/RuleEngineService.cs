@@ -135,6 +135,17 @@ public class RuleEngineService : IRuleEngine
         readinessScore.Summary = $"Readiness Score: {score:F1} ({readinessScore.Level}). " +
                                  $"{validationResult.ViolationCount} violations found across {validationResult.TotalRulesEvaluated} rules.";
 
+        // Auto-approval logic: score > 85 and no errors. Warnings are ok.
+        bool hasErrors = validationResult.Violations.Any(v => v.Severity.ToUpper() == "ERROR");
+        if (score > 85 && !hasErrors)
+        {
+            readinessScore.IsApproved = true;
+            readinessScore.IsAutoApproved = true;
+            readinessScore.ApprovedBy = "System (Auto-Approved)";
+            readinessScore.ApprovedAt = DateTime.UtcNow;
+            readinessScore.Summary += " System auto-approved this return.";
+        }
+
         return readinessScore;
     }
 

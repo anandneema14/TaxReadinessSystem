@@ -1,19 +1,31 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TaxReturnFormComponent } from './components/tax-return-form/tax-return-form.component';
+import { RouterModule, Router } from '@angular/router';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, TaxReturnFormComponent],
+  imports: [CommonModule, RouterModule],
   template: `
-    <nav class="navbar navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container-fluid">
-        <span class="navbar-brand mb-0 h1">Tax Readiness Checker</span>
+        <a class="navbar-brand" routerLink="/">Tax Readiness Checker</a>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto" *ngIf="authService.isAuthenticated()">
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/tax-return" routerLinkActive="active">Validate Return</a>
+            </li>
+          </ul>
+          <div class="d-flex align-items-center" *ngIf="authService.isAuthenticated()">
+            <span class="text-light me-3">{{ authService.currentUserValue?.email }}</span>
+            <button class="btn btn-outline-light btn-sm" (click)="logout()">Logout</button>
+          </div>
+        </div>
       </div>
     </nav>
     <main>
-      <app-tax-return-form></app-tax-return-form>
+      <router-outlet></router-outlet>
     </main>
   `,
   styles: [`
@@ -22,4 +34,11 @@ import { TaxReturnFormComponent } from './components/tax-return-form/tax-return-
     }
   `]
 })
-export class AppComponent {}
+export class AppComponent {
+  constructor(public authService: AuthService, private router: Router) {}
+
+  logout() {
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
+}

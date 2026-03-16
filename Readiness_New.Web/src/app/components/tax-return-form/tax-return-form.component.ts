@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { TaxReturnService } from '../../services/tax-return.service';
-import { TaxReturn, ValidationResult } from '../../models/tax-return.model';
+import { AuthService } from '../../services/auth.service';
+import { TaxReturn, ValidationResult, ReadinessScore } from '../../models/tax-return.model';
 
 @Component({
   selector: 'app-tax-return-form',
@@ -14,12 +15,17 @@ import { TaxReturn, ValidationResult } from '../../models/tax-return.model';
 export class TaxReturnFormComponent {
   taxForm: FormGroup;
   validationResult: ValidationResult | null = null;
+  readinessScore: ReadinessScore | null = null;
   loading = false;
   error: string | null = null;
   uploadMode = false;
   selectedFile: File | null = null;
 
-  constructor(private fb: FormBuilder, private taxService: TaxReturnService) {
+  constructor(
+    private fb: FormBuilder, 
+    private taxService: TaxReturnService,
+    public authService: AuthService
+  ) {
     this.taxForm = this.fb.group({
       taxpayerId: ['', Validators.required],
       taxYear: [2023, [Validators.required, Validators.min(2000), Validators.max(2025)]],
@@ -86,6 +92,7 @@ export class TaxReturnFormComponent {
     this.uploadMode = !this.uploadMode;
     this.error = null;
     this.validationResult = null;
+    this.readinessScore = null;
     this.selectedFile = null;
   }
 
@@ -100,31 +107,65 @@ export class TaxReturnFormComponent {
     }
   }
 
+  processTaxReturn(taxReturn: TaxReturn) {
+    this.loading = true;
+    this.error = null;
+    this.validationResult = null;
+    this.readinessScore = null;
+
+    this.taxService.validateTaxReturn(taxReturn).subscribe({
+      next: (result) => {
+        this.validationResult = result;
+        if (result.isValid) {
+          this.taxService.calculateReadinessScore(taxReturn).subscribe({
+            next: (score) => {
+              this.readinessScore = score;
+              this.loading = false;
+            },
+            error: (err) => {
+              this.error = 'An error occurred while calculating the readiness score.';
+              this.loading = false;
+            }
+          });
+        } else {
+          this.loading = false;
+        }
+      },
+      error: (err) => {
+        this.error = 'An error occurred while validating the tax return.';
+        this.loading = false;
+        console.error(err);
+      }
+    });
+  }
+
+  approveScore() {
+    if (this.readinessScore) {
+      this.loading = true;
+      this.taxService.approveScore(this.readinessScore).subscribe({
+        next: (updatedScore) => {
+          this.readinessScore = updatedScore;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.error = err.error || 'An error occurred while approving the score.';
+          this.loading = false;
+        }
+      });
+    }
+  }
+
   onFileUpload() {
     if (!this.selectedFile) {
       this.error = 'Please select a file first.';
       return;
     }
 
-    this.loading = true;
-    this.error = null;
-    this.validationResult = null;
-
     const reader = new FileReader();
     reader.onload = (e: any) => {
       try {
         const taxReturn: TaxReturn = JSON.parse(e.target.result);
-        this.taxService.validateTaxReturn(taxReturn).subscribe({
-          next: (result) => {
-            this.validationResult = result;
-            this.loading = false;
-          },
-          error: (err) => {
-            this.error = 'An error occurred while validating the uploaded tax return.';
-            this.loading = false;
-            console.error(err);
-          }
-        });
+        this.processTaxReturn(taxReturn);
       } catch (err) {
         this.error = 'Invalid JSON file format.';
         this.loading = false;
@@ -144,23 +185,7 @@ export class TaxReturnFormComponent {
     }
 
     if (this.taxForm.valid) {
-      this.loading = true;
-      this.error = null;
-      this.validationResult = null;
-
-      const taxReturn: TaxReturn = this.taxForm.value;
-      
-      this.taxService.validateTaxReturn(taxReturn).subscribe({
-        next: (result) => {
-          this.validationResult = result;
-          this.loading = false;
-        },
-        error: (err) => {
-          this.error = 'An error occurred while validating the tax return.';
-          this.loading = false;
-          console.error(err);
-        }
-      });
+      this.processTaxReturn(this.taxForm.value);
     } else {
       this.taxForm.markAllAsTouched();
     }

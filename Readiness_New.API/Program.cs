@@ -1,11 +1,18 @@
 using Readiness_New.API.Extensions;
 using Readiness_New.API.Configurations;
+using Readiness_New.API.Data;
+using Readiness_New.API.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace Readiness_New.API;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +21,7 @@ public class Program
         var ruleEngineSection = builder.Configuration.GetSection("RuleEngine");
         var provider = ruleEngineSection["Provider"];
 
-        bool useAAzureAppConfig = false;
+        bool useAzureAppConfig = false;
 
         if (provider?.Equals("AzureAppConfig", StringComparison.OrdinalIgnoreCase) == true)
         {
@@ -30,7 +37,7 @@ public class Program
                                       .SetCacheExpiration(TimeSpan.FromSeconds(30));
                            });
                 });
-                useAAzureAppConfig = true;
+                useAzureAppConfig = true;
             }
         }
 
@@ -45,6 +52,35 @@ public class Program
             });
         });
 
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+        builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
+
+        var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+        var secretKey = jwtSettings["SecretKey"] ?? "a-very-long-and-secure-secret-key-that-must-be-at-least-32-chars";
+
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSettings["Issuer"] ?? "ReadinessApp",
+                ValidAudience = jwtSettings["Audience"] ?? "ReadinessAppUsers",
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            };
+        });
+
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -52,6 +88,23 @@ public class Program
         builder.Services.AddRuleEngine(builder.Configuration);
 
         var app = builder.Build();
+
+        // Seed initial data
+        using (var scope = app.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            try
+            {
+                var context = services.GetRequiredService<ApplicationDbContext>();
+                context.Database.Migrate();
+                await DbSeeder.SeedRolesAndAdminAsync(services);
+            }
+            catch (Exception ex)
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "An error occurred while seeding the database.");
+            }
+        }
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -64,11 +117,12 @@ public class Program
 
         app.UseCors("AllowAngular");
 
-        if (useAAzureAppConfig)
+        if (useAzureAppConfig)
         {
             app.UseAzureAppConfiguration();
         }
 
+        app.UseAuthentication();
         app.UseAuthorization();
         
         app.MapControllers();

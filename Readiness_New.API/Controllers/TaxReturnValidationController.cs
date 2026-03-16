@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Readiness_New.API.Configurations;
@@ -8,6 +9,7 @@ namespace Readiness_New.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TaxReturnValidationController : ControllerBase
 {
     private readonly IRuleEngine _ruleEngine;
@@ -142,6 +144,7 @@ public class TaxReturnValidationController : ControllerBase
     /// </summary>///
     /// <returns>Success message</returns>
     [HttpPost("rules/reload")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> ReloadRules()

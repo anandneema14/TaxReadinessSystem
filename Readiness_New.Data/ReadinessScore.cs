@@ -7,6 +7,10 @@ public class ReadinessScore
     public string Summary { get; set; }
     public List<CategoryScore> CategoryScores { get; set; } = new List<CategoryScore>();
     public ValidationResult ValidationResult { get; set; }
+    public bool IsApproved { get; set; }
+    public bool IsAutoApproved { get; set; }
+    public string? ApprovedBy { get; set; }
+    public DateTime? ApprovedAt { get; set; }
 }
 
 public class CategoryScore

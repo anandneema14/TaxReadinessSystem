@@ -55,6 +55,23 @@ export interface W2Form {
   socialSecurityWages: number;
 }
 
+export interface ReadinessScore {
+  score: number;
+  level: string;
+  summary: string;
+  categoryScores: CategoryScore[];
+  validationResult: ValidationResult;
+  isApproved: boolean;
+  isAutoApproved: boolean;
+  approvedBy?: string;
+  approvedAt?: string;
+}
+
+export interface CategoryScore {
+  category: string;
+  score: number;
+}
+
 export interface ValidationResult {
   isValid: boolean;
   violations: Violation[];

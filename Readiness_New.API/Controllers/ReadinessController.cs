@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Readiness_New.API.Configurations;
@@ -8,6 +9,7 @@ namespace Readiness_New.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ReadinessController : ControllerBase
 {
     private readonly IRuleEngine _ruleEngine;
@@ -80,6 +82,46 @@ public class ReadinessController : ControllerBase
         {
             _logger.LogError(ex, "Error calculating readiness score data");
             return StatusCode(500, "An error occurred while calculating the readiness score");
+        }
+    }
+
+    [HttpPost("approve")]
+    [Authorize(Roles = "Reviewer")]
+    [ProducesResponseType(typeof(ReadinessScore), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ReadinessScore>> ApproveScore([FromBody] ReadinessScore score)
+    {
+        try
+        {
+            if (score == null)
+            {
+                return BadRequest("Score object cannot be null");
+            }
+
+            if (score.Score >= 85)
+            {
+                bool hasErrors = score.ValidationResult?.Violations?.Any(v => v.Severity.ToUpper() == "ERROR") ?? false;
+                if (!hasErrors)
+                {
+                    return BadRequest("This score is already auto-approved as it is > 85 with no errors.");
+                }
+            }
+
+            score.IsApproved = true;
+            score.ApprovedBy = User.Identity?.Name;
+            score.ApprovedAt = DateTime.UtcNow;
+
+            _logger.LogInformation("Readiness score approved by {User}. Score: {Score}", 
+                score.ApprovedBy, score.Score);
+
+            return Ok(score);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving readiness score");
+            return StatusCode(500, "An error occurred while approving the score");
         }
     }
 
