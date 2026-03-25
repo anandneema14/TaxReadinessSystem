@@ -313,8 +313,11 @@ public class RuleEngineService : IRuleEngine
         {
             try
             {
-                var convertedValue2 = Convert.ChangeType(value2, value1.GetType());
-                return comparable1.CompareTo(convertedValue2);
+                if (value1 is IConvertible && value2 is IConvertible)
+                {
+                    var convertedValue2 = Convert.ChangeType(value2, value1.GetType());
+                    return comparable1.CompareTo(convertedValue2);
+                }
             }
             catch
             {
