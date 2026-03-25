@@ -12,6 +12,10 @@ public static class ServiceCollectionExtensions
         configuration.GetSection("RuleEngine").Bind(options);
         services.Configure<RuleEngineOptions>(configuration.GetSection("RuleEngine"));
 
+        // Add Azure OpenAI services
+        services.Configure<AzureOpenAiOptions>(configuration.GetSection("AzureOpenAi"));
+        services.AddScoped<IAiService, AzureOpenAiService>();
+
         if (options.Provider?.Equals("AzureAppConfig", StringComparison.OrdinalIgnoreCase) == true)
         {
             services.AddSingleton<IRuleRepository>(sp => 

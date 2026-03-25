@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Readiness_New.API.Configurations;
+using Readiness_New.API.Services;
 using Readiness_New.Data;
 using Readiness_new.RA;
 
@@ -14,17 +15,21 @@ public class ReadinessController : ControllerBase
 {
     private readonly IRuleEngine _ruleEngine;
     private readonly IRuleRepository _ruleLoader;
+    private readonly IAiService _aiService;
     private readonly ILogger<ReadinessController> _logger;
     private readonly RuleEngineOptions _options;
     private static RuleSet? _cachedRuleSet;
     private static readonly SemaphoreSlim _cacheLock = new SemaphoreSlim(1, 1);
 
     public ReadinessController(IRuleEngine ruleEngine,
-        IRuleRepository ruleLoader, ILogger<ReadinessController> logger,
+        IRuleRepository ruleLoader, 
+        IAiService aiService,
+        ILogger<ReadinessController> logger,
         IOptions<RuleEngineOptions> options)
     {
         _ruleEngine = ruleEngine;
         _ruleLoader = ruleLoader;
+        _aiService = aiService;
         _logger = logger;
         _options = options.Value;
     }
@@ -44,6 +49,9 @@ public class ReadinessController : ControllerBase
 
             var rules = await GetRulesAsync();
             var score = _ruleEngine.CalculateReadinessScore(taxReturn, rules);
+
+            // Generate summary using AI service
+            score.Summary = await _aiService.GenerateSummaryAsync(score);
 
             _logger.LogInformation(
                 "Calculated readiness score for taxpayer {TaxpayerId}. Score: {Score}, Level: {Level}",
@@ -73,6 +81,9 @@ public class ReadinessController : ControllerBase
 
             var rules = await GetRulesAsync();
             var score = _ruleEngine.CalculateReadinessScore(taxReturnData, rules);
+
+            // Generate summary using AI service
+            score.Summary = await _aiService.GenerateSummaryAsync(score);
 
             _logger.LogInformation("Calculated readiness score for dictionary data. Score: {Score}, Level: {Level}",
                 score.Score, score.Level);
