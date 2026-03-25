@@ -180,32 +180,36 @@ public class RuleEngineService : IRuleEngine
     private bool EvaluateSimpleCondition(Condition condition, Dictionary<string, object> data,
         List<string> affectedFields)
     {
-        if (string.IsNullOrWhiteSpace(condition.Field) || !data.ContainsKey(condition.Field))
+        if (string.IsNullOrWhiteSpace(condition.Field))
         {
             return false;
         }
-        affectedFields.Add(condition.Field);
-        
+
         var fieldValue = GetFieldValue(condition.Field, data);
 
         if (condition.Operator?.ToUpper() == "EXISTS")
         {
+            if (fieldValue != null) affectedFields.Add(condition.Field);
             return fieldValue != null;
         }
         
         if (condition.Operator?.ToUpper() == "NOTEXISTS")
         {
+            // For NOTEXISTS, we might still want to know which field was checked
+            affectedFields.Add(condition.Field);
             return fieldValue == null;
         }
         
         if (condition.Operator?.ToUpper() == "ISEMPTY")
         {
+            affectedFields.Add(condition.Field);
             return fieldValue == null || string.IsNullOrWhiteSpace(fieldValue?.ToString());
         }
         
         if (condition.Operator?.ToUpper() == "NOTEMPTY")
         {
-            return fieldValue != null || !string.IsNullOrWhiteSpace(fieldValue?.ToString());
+            affectedFields.Add(condition.Field);
+            return fieldValue != null && !string.IsNullOrWhiteSpace(fieldValue?.ToString());
         }
 
         if (fieldValue == null)
@@ -213,13 +217,15 @@ public class RuleEngineService : IRuleEngine
             return false;
         }
 
+        affectedFields.Add(condition.Field);
+
         return condition.Operator?.ToUpper() switch
         {
             "EQUALS" or "EQ" => CompareValues(fieldValue, condition.Value) == 0,
-            "NOTEQUALS" or "NE" => CompareValues(fieldValue, condition.Value) == 0,
-            "GREATERTHAN" or "GT" => CompareValues(fieldValue, condition.Value) == 0,
+            "NOTEQUALS" or "NE" => CompareValues(fieldValue, condition.Value) != 0,
+            "GREATERTHAN" or "GT" => CompareValues(fieldValue, condition.Value) > 0,
             "GREATERTHANOREQUAL" or "GTE" => CompareValues(fieldValue, condition.Value) >= 0,
-            "LESSTHAN" or "LT" => CompareValues(fieldValue, condition.Value) == 0,
+            "LESSTHAN" or "LT" => CompareValues(fieldValue, condition.Value) < 0,
             "LESSTHANOREQUAL" or "LTE" => CompareValues(fieldValue, condition.Value) <= 0,
             "CONTAINS" => fieldValue?.ToString()
                 ?.Contains(condition.Value?.ToString(), StringComparison.OrdinalIgnoreCase) ?? false,
@@ -235,11 +241,11 @@ public class RuleEngineService : IRuleEngine
 
     private object GetFieldValue(string fieldPath, Dictionary<string, object> data)
     {
-        if(data == null || !data.ContainsKey(fieldPath))
+        if (string.IsNullOrEmpty(fieldPath) || data == null)
         {
             return null;
         }
-        
+
         var parts = fieldPath.Split('.');
         object current = data;
 
@@ -249,10 +255,16 @@ public class RuleEngineService : IRuleEngine
             {
                 return null;
             }
+
             if (current is Dictionary<string, object> dict)
             {
-                if(!dict.TryGetValue(part, out current))
+                if (!dict.TryGetValue(part, out current))
+                {
+                    // If not found in dictionary, try reflection if it's not the initial dictionary
+                    // Actually, the initial data is a Dictionary<string, object> from ConvertObjectToDictionary
+                    // which is shallow. So nested objects are still their original types.
                     return null;
+                }
             }
             else
             {
@@ -269,26 +281,53 @@ public class RuleEngineService : IRuleEngine
 
     private int CompareValues(object value1, object value2)
     {
-        if(value1 == null && value2 == null)
+        if (value1 == null && value2 == null)
             return 0;
-        if(value1 == null)
+        if (value1 == null)
             return -1;
-        if(value2 == null)
+        if (value2 == null)
             return 1;
-        try
+
+        // Handle JsonElement from rules.json
+        if (value2 is JsonElement element)
         {
-            if (value1 is IComparable comparable1)
+            value2 = element.ValueKind switch
             {
-                var convertedValue2 = Convert.ChangeType(value2, comparable1.GetType());
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.GetDouble(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                _ => element.ToString()
+            };
+        }
+
+        // Try to convert both to decimals if they look like numbers
+        if (IsNumeric(value1) && IsNumeric(value2))
+        {
+            decimal d1 = Convert.ToDecimal(value1);
+            decimal d2 = Convert.ToDecimal(value2);
+            return d1.CompareTo(d2);
+        }
+
+        if (value1 is IComparable comparable1)
+        {
+            try
+            {
+                var convertedValue2 = Convert.ChangeType(value2, value1.GetType());
                 return comparable1.CompareTo(convertedValue2);
             }
+            catch
+            {
+                // Fallback to string comparison
+            }
         }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+
         return string.Compare(value1.ToString(), value2.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsNumeric(object value)
+    {
+        return value is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal;
     }
 
     private bool IsInList(object value, object listValue)
