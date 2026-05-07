@@ -50,15 +50,28 @@ public class TaxReturnValidationController : ControllerBase
             var rules = await GetRulesAsync();
             var result = _ruleEngine.ValidateTaxReturn(taxReturn, rules);
 
+            var sanitizedTaxpayerId = SanitizeForLog(taxReturn.TaxpayerId);
             _logger.LogInformation(
                 "Validated tax return for taxpayer {TaxpayerId}. Valid: {IsValid}, Violations: {ViolationCount}",
-                taxReturn.TaxpayerId, result.IsValid, result.ViolationCount);
+                sanitizedTaxpayerId, result.IsValid, result.ViolationCount);
             return Ok(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating tax return");
             return StatusCode(500, "An error occurred while validating the tax return");
+        }
+
+        private static string SanitizeForLog(string? input)
+        {
+            if (string.IsNullOrEmpty(input))
+            {
+                return string.Empty;
+            }
+
+            return input
+                .Replace("\r", string.Empty)
+                .Replace("\n", string.Empty);
         }
     }
 
